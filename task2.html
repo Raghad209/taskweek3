@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+    body{
+    	font-family: arial;
+    	font-size: 16px;
+    	margin: 0;
+    	background: linear-gradient(#e66465, #9198e5);
+    	color: #000;
+
+    	display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .voice_to_text{
+      width: 600px;
+      text-align: center;
+    }
+    #convert_text{
+      width: 100%;
+      height: 200px;
+      border-radius: 10px;
+      resize: none;
+      padding: 10px;
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    h1{
+    	color: #fff;
+    	font-size: 50px;
+    }
+    button{
+    	padding: 12px 20px;
+      background: #FF69B4;
+      border: 0;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    </style>
+</head>
+<body>
+
+    <div class="voice_to_text">
+      <h1>Voice to Text Converter</h1>
+      <textarea type="text" id="convert_text" placeholder="... اضغط هنا ثم تحدث " onclick="record()"></textarea>
+      <button id="click_to_record">اتصال</button>
+    </div>
+
+
+
+    <script>
+        var port, textEncoder, writableStreamClosed, writer;
+        async function connectSerial() {
+            try {
+
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+
+                textEncoder = new TextEncoderStream();
+                writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+
+                writer = textEncoder.writable.getWriter();
+                listenToPort();
+            } catch {
+                alert("Serial Connection Failed");
+            }
+        }
+
+
+        function record() {
+            var recognition = new webkitSpeechRecognition();
+            recognition.lang = "ar";
+
+            recognition.onresult = function (event) {
+
+                var a = document.getElementById('speechToText').value = event.results[0][0].transcript;
+                if (a == "يمين." || a=="يمين") {
+                    console.log(a)
+                    sendSerialLine();
+
+                }else if(a == "يسار." || a=="يسار") {
+                    console.log(a)
+                    sendSerialLineB();
+
+                }
+
+            }
+            recognition.start();
+
+        }
+
+
+        document.querySelector('button').addEventListener('click', async () => {
+            const port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 });
+
+        });
+
+        async function listenToPort() {
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            const reader = textDecoder.readable.getReader();
+            // Listen to data coming from the serial device.
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    // Allow the serial port to be closed later.
+                    reader.releaseLock();
+                    break;
+                }
+                // value is a string.
+                appendToTerminal(value);
+            }
+
+
+        }
+        async function sendSerialLine() {
+            dataToSend = 'A'
+            dataToSend = dataToSend + "\r\n";
+
+            await writer.write(dataToSend);
+        }
+        async function sendSerialLineB() {
+            dataToSend = 'B'
+            dataToSend = dataToSend + "\r\n";
+
+            await writer.write(dataToSend);
+        }
+
+    </script>
+
+
+</body>
+
+</html>
